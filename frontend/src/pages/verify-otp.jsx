@@ -1,8 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const VerifyOTPPage = () => {
     const [otp, setOtp] = useState('');
+    const [Email, setEmail] = useState('');
+    const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const navigate = useNavigate();
+
+    // Use useEffect to get data from localStorage on component mount
+    useEffect(() => {
+        setEmail(localStorage.getItem('email') || ''); // Retrieve email from localStorage
+        setRememberMe(localStorage.getItem('rememberMe') === 'true'); // Retrieve rememberMe preference
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -17,8 +28,28 @@ const VerifyOTPPage = () => {
         try {
             console.log('Verifying OTP:', otp);
             // Add your OTP verification logic here
+            const res = await axios.post('http://localhost:3000/login/verify-otp', {
+                email: Email,
+                otp: otp,
+                rememberMe: rememberMe
+            });
+
+            if (res.status === 200) {
+                console.log('OTP verified successfully!');
+                localStorage.clear(); // Clear localStorage on successful verification
+
+                const token = res.data.token; // Assuming the token is returned in the response
+                localStorage.setItem('token', token); // Store the token if needed
+
+                navigate('/user/home'); // Redirect to home or another page after successful verification
+            }
+
+
+
+
+
             await new Promise(resolve => setTimeout(resolve, 2000));
-            alert('OTP verified successfully!');
+            console.log('OTP verified successfully!');
         } catch (error) {
             console.error('OTP verification failed:', error);
             alert('Invalid OTP. Please try again.');
@@ -79,7 +110,7 @@ const VerifyOTPPage = () => {
                     <button
                         type="submit"
                         disabled={isLoading || otp.length !== 6}
-                        className="w-full text-white py-3 px-4 rounded-lg hover:opacity-90 focus:ring-2 focus:ring-offset-2 transition duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                        className="cursor-pointer w-full text-white py-3 px-4 rounded-lg hover:opacity-90 focus:ring-2 focus:ring-offset-2 transition duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         style={{
                             backgroundColor: '#17A29F',
                             focusRingColor: '#17A29F'
@@ -107,7 +138,7 @@ const VerifyOTPPage = () => {
                     <button
                         type="button"
                         onClick={handleResendOTP}
-                        className="text-sm font-medium hover:opacity-80 transition duration-200"
+                        className="cursor-pointer text-sm font-medium hover:opacity-80 transition duration-200"
                         style={{ color: '#17A29F' }}
                     >
                         Resend Verification Code
@@ -118,7 +149,8 @@ const VerifyOTPPage = () => {
                 <div className="mt-6 text-center">
                     <button
                         type="button"
-                        className="inline-flex items-center text-sm text-gray-400 hover:text-gray-300 transition duration-200"
+                        className="inline-flex items-center text-sm text-gray-400 hover:text-gray-300 cursor-pointer transition duration-200"
+                        onClick={() => navigate('/user/login')}
                     >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

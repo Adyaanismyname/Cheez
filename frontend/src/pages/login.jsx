@@ -24,8 +24,14 @@ const LoginPage = () => {
                 rememberMe: rememberMe
             });
 
+            const { email } = res.data;
+
+
             if (res.status === 200) {
                 console.log('Login successful');
+
+                localStorage.setItem('email', email); // Store email
+                localStorage.setItem('rememberMe', rememberMe); // Store rememberMe preference
                 navigate('/user/verify-otp'); // redirect to OTP verification page
             }
         } catch (error) {
@@ -45,7 +51,7 @@ const LoginPage = () => {
                         alt="Logo"
                         className="mx-auto mb-6 h-30 w-auto"
                     />
-                    <p className="text-gray-300 ">Sign in to your account</p>
+                    <p className="text-gray-300 font-medium">Sign in to your account</p>
                 </div>
 
                 {/* Login Form */}
@@ -94,7 +100,7 @@ const LoginPage = () => {
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute inset-y-0 right-0 pr-4 flex items-center hover:opacity-80 transition duration-200"
+                                className="cursor-pointer absolute inset-y-0 right-0 pr-4 flex items-center hover:opacity-80 transition duration-200"
                                 style={{ color: '#17A29F' }}
                             >
                                 {showPassword ? (
@@ -119,14 +125,14 @@ const LoginPage = () => {
                                 type="checkbox"
                                 checked={rememberMe}
                                 onChange={(e) => setRememberMe(e.target.checked)}
-                                className="h-4 w-4 border-gray-300 rounded"
+                                className="cursor-pointer h-4 w-4 border-gray-300 rounded"
                                 style={{ accentColor: '#17A29F' }}
                             />
                             <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-300">
                                 Remember me
                             </label>
                         </div>
-                        <a href="#" className="text-sm hover:opacity-80 transition duration-200" style={{ color: '#17A29F' }}>
+                        <a onClick={() => navigate('/user/forgot-password')} href="#" className="cursor-pointer text-sm hover:opacity-80 transition duration-200" style={{ color: '#17A29F' }}>
                             Forgot password?
                         </a>
                     </div>
@@ -134,7 +140,7 @@ const LoginPage = () => {
                     {/* Login Button */}
                     <button
                         type="submit"
-                        className="w-full text-white py-3 px-4 rounded-lg hover:opacity-90 focus:ring-2 focus:ring-offset-2 transition duration-200 font-medium"
+                        className="cursor-pointer w-full text-white py-3 px-4 rounded-lg hover:opacity-90 focus:ring-2 focus:ring-offset-2 transition duration-200 font-medium"
                         style={{
                             backgroundColor: '#17A29F',
                             focusRingColor: '#17A29F'
