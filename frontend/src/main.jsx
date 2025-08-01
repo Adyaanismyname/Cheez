@@ -4,16 +4,19 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './index.css'
 import LoginPage from './pages/login.jsx'
 import OtpPage from './pages/verify-otp.jsx'
+import HomePage from './pages/home.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<h1>Welcome to Cheez</h1>} />
+        <Route path="/" element={<h1>Welcome to Cheez</h1>} /> // temporary landing page
 
         {/** user routes */}
         <Route path="/user/login" element={<LoginPage />} />
         <Route path="/user/verify-otp" element={<OtpPage />} />
+        <Route path="/user/home" element={<HomePage />} />
+
 
       </Routes>
     </BrowserRouter>

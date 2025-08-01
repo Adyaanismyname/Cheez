@@ -36,10 +36,13 @@ const VerifyOTPPage = () => {
 
             if (res.status === 200) {
                 console.log('OTP verified successfully!');
-                localStorage.clear(); // Clear localStorage on successful verification
+                console.log(res.data);
 
-                const token = res.data.token; // Assuming the token is returned in the response
-                localStorage.setItem('token', token); // Store the token if needed
+                const token = res.data.token; // Get the token from response
+
+                // Clear old data and store new token
+                localStorage.clear();
+                localStorage.setItem('token', token);
 
                 navigate('/user/home'); // Redirect to home or another page after successful verification
             }
