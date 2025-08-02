@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="frontend/static/logo-background-removed.png" alt="Cheez Logo" width="200" height="auto">
   
   # 🧀 Cheez E-Commerce Platform
   
@@ -179,3 +178,4 @@ This project is created for educational purposes and skill development.
   <p><strong>Built with ❤️ for learning and skill development</strong></p>
   <p><em>⭐ Star this repo if you found it helpful!</em></p>
 </div>
+
