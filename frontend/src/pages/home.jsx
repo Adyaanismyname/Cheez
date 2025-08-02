@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import TopBar from '../components/TopBar';
 
 const HomePage = () => {
     const navigate = useNavigate();
@@ -8,6 +9,7 @@ const HomePage = () => {
     const [products, setProducts] = useState({});
     const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
     const [userProfile, setUserProfile] = useState({});
+    const [isLoading, setIsLoading] = useState(true);
     const scrollRef = useRef(null);
 
     // Sample data - replace with real data from your backend
@@ -35,8 +37,9 @@ const HomePage = () => {
         }
     ];
 
-    // Auto-scroll promotions
+    // Auto-scroll promotions and smooth scroll to current promotion
     useEffect(() => {
+        // Auto-scroll promotions
         const interval = setInterval(() => {
             setCurrentPromoIndex((prevIndex) =>
                 prevIndex === promotions.length - 1 ? 0 : prevIndex + 1
@@ -46,8 +49,8 @@ const HomePage = () => {
         return () => clearInterval(interval);
     }, [promotions.length]);
 
-    // Smooth scroll to current promotion
     useEffect(() => {
+        // Smooth scroll to current promotion
         if (scrollRef.current) {
             const scrollWidth = scrollRef.current.scrollWidth / promotions.length;
             scrollRef.current.scrollTo({
@@ -57,10 +60,11 @@ const HomePage = () => {
         }
     }, [currentPromoIndex, promotions.length]);
 
-    // Fetch products from backend
+    // Fetch products and user data on component mount
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchData = async () => {
             try {
+                setIsLoading(true);
                 const jwttoken = localStorage.getItem('token');
                 console.log('Token from localStorage:', jwttoken);
 
@@ -70,75 +74,44 @@ const HomePage = () => {
                     return;
                 }
 
-                const res = await axios.post(
-                    'http://localhost:3000/home/fetch-all-products',
-                    {},
-                    {
-                        headers: {
-                            authtoken: jwttoken
-                        }
-                    }
-                );
+                const headers = { authtoken: jwttoken };
 
-                if (res.status === 200) {
-                    setProducts(res.data.data);
-                    console.log('Products fetched:', res.data.data);
+                // Make both API calls in parallel
+                const [productsResponse, userResponse] = await Promise.all([
+                    axios.post('http://localhost:3000/home/fetch-all-products', {}, { headers }),
+                    axios.post('http://localhost:3000/home/fetch-user-profile', {}, { headers })
+                ]);
+
+                // Handle products response
+                if (productsResponse.status === 200) {
+                    setProducts(productsResponse.data.data);
+                    console.log('Products fetched:', productsResponse.data.data);
                 } else {
-                    console.error('Failed to fetch products:', res.data.message);
+                    console.error('Failed to fetch products:', productsResponse.data.message);
                 }
+
+                // Handle user response
+                if (userResponse.status === 200) {
+                    console.log('User profile fetched:', userResponse.data.data);
+                    setUserProfile(userResponse.data.data);
+                } else {
+                    console.error('Failed to fetch user profile:', userResponse.data.message);
+                }
+
             } catch (error) {
-                console.error('Error fetching products:', error);
+                console.error('Error fetching data:', error);
                 if (error.response?.status === 401) {
                     console.log('Token expired or invalid, redirecting to login');
                     localStorage.clear();
                     navigate('/user/login');
                 }
+            } finally {
+                setIsLoading(false);
             }
         };
 
-        fetchProducts();
+        fetchData();
     }, [navigate]);
-
-    // fetch user data
-    useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                const jwttoken = localStorage.getItem('token');
-                if (!jwttoken) {
-                    console.error('No token found, redirecting to login');
-                    navigate('/user/login');
-                    return;
-                }
-
-                const res = await axios.post(
-                    'http://localhost:3000/home/fetch-user-profile',
-                    {},
-                    {
-                        headers: {
-                            authtoken: jwttoken
-                        }
-                    }
-                );
-
-                if (res.status === 200) {
-                    console.log('User profile fetched:', res.data.data);
-                    setUserProfile(res.data.data);
-                } else {
-                    console.error('Failed to fetch user profile:', res.data.message);
-                }
-            } catch (error) {
-                console.error('Error fetching user profile:', error);
-                if (error.response?.status === 401) {
-                    console.log('Token expired or invalid, redirecting to login');
-                    localStorage.clear();
-                    navigate('/user/login');
-                }
-            }
-        };
-
-        fetchUserData();
-
-    }, []);
 
     const renderStars = (rating) => {
         return (
@@ -162,54 +135,11 @@ const HomePage = () => {
     return (
         <div className="min-h-screen bg-white">
             {/* Header */}
-            <header className="shadow-sm border-b border-gray-200" style={{ backgroundColor: '#293038' }}>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        {/* Logo */}
-                        <div className="flex items-center">
-                            <img
-                                src="/static/logo-background-removed.png"
-                                alt="Logo"
-                                className="h-16 w-auto"
-                            />
-                        </div>
-
-                        {/* Search Bar */}
-                        <div className="flex-1  max-w-2xl mx-8">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Search products..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="bg-white w-full px-4 py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition duration-200 outline-none"
-                                    style={{ focusRingColor: '#17A29F' }}
-                                />
-                                <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
-                        </div>
-
-                        {/* Profile & Cart */}
-                        <div className="flex items-center space-x-4">
-                            <button className="p-2 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-                                </svg>
-                            </button>
-                            <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#17A29F' }}>
-                                    <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                </div>
-                                <span className="text-white text-sm font-medium">{userProfile.username}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <TopBar
+                userProfile={userProfile}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+            />
 
             <main>
                 {/* Full-Width Promotions Section */}
@@ -257,7 +187,7 @@ const HomePage = () => {
                                         <h3 className="text-4xl md:text-5xl font-bold mb-4">{promo.title}</h3>
                                         <p className="text-xl md:text-2xl mb-6">{promo.subtitle}</p>
                                         <button
-                                            className="px-8 py-3 bg-white text-gray-900 rounded-lg font-semibold hover:bg-gray-100 transition duration-200"
+                                            className="cursor-pointer px-8 py-3 bg-white text-gray-900 rounded-lg font-semibold hover:bg-gray-100 transition duration-200"
                                         >
                                             Shop Now
                                         </button>
@@ -285,52 +215,83 @@ const HomePage = () => {
 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Categories and Products */}
-                    {Object.keys(products).map((categoryName) => (
-                        <section key={categoryName} className="mb-12">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900">{categoryName}</h2>
-                                <button
-                                    className="text-sm font-medium hover:opacity-80 transition duration-200"
-                                    style={{ color: '#17A29F' }}
-                                >
-                                    View All
-                                </button>
-                            </div>
-
-                            <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
-                                {products[categoryName].map((product) => (
-                                    <div
-                                        key={product._id}
-                                        className="flex-shrink-0 w-64 bg-white rounded-xl shadow-md hover:shadow-lg transition duration-300 cursor-pointer border border-gray-200"
-                                    >
-                                        <img
-                                            src={product.images}
-                                            alt={product.name}
-                                            className="w-full h-48 object-cover rounded-t-xl"
-                                        />
-                                        <div className="p-4">
-                                            <h3 className="font-semibold text-gray-900 mb-2 truncate">{product.title}</h3>
-                                            <div className="mb-2">
-                                                {renderStars(product.rating)}
+                    {isLoading ? (
+                        // Loading skeleton
+                        <div className="space-y-12">
+                            {[1, 2, 3].map((skeleton) => (
+                                <section key={skeleton} className="mb-12">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="h-8 bg-gray-200 rounded w-32 animate-pulse"></div>
+                                        <div className="h-6 bg-gray-200 rounded w-16 animate-pulse"></div>
+                                    </div>
+                                    <div className="flex space-x-6 pb-4">
+                                        {[1, 2, 3, 4].map((item) => (
+                                            <div key={item} className="flex-shrink-0 w-64 bg-white rounded-xl shadow-md border border-gray-200">
+                                                <div className="w-full h-48 bg-gray-200 rounded-t-xl animate-pulse"></div>
+                                                <div className="p-4">
+                                                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2 animate-pulse"></div>
+                                                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-2 animate-pulse"></div>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="h-6 bg-gray-200 rounded w-16 animate-pulse"></div>
+                                                        <div className="h-10 w-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xl font-bold text-gray-900">${product.price}</span>
-                                                <button
-                                                    className="p-2 rounded-lg text-white hover:opacity-90 transition duration-200 flex items-center justify-center"
-                                                    style={{ backgroundColor: '#17A29F' }}
-                                                    title="Add to Cart"
-                                                >
-                                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-                                                    </svg>
-                                                </button>
+                                        ))}
+                                    </div>
+                                </section>
+                            ))}
+                        </div>
+                    ) : (
+                        Object.keys(products).map((categoryName) => (
+                            <section key={categoryName} className="mb-12">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-2xl font-bold text-gray-900">{categoryName}</h2>
+                                    <button
+                                        className="text-sm font-medium hover:opacity-80 transition duration-200"
+                                        style={{ color: '#17A29F' }}
+                                    >
+                                        View All
+                                    </button>
+                                </div>
+
+                                <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
+                                    {products[categoryName].map((product) => (
+                                        <div
+                                            key={product._id}
+                                            className="flex-shrink-0 w-64 bg-white rounded-xl shadow-md hover:shadow-lg transition duration-300 cursor-pointer border border-gray-200"
+                                        >
+                                            <img
+                                                src={product.images}
+                                                alt={product.name}
+                                                className="w-full h-48 object-cover rounded-t-xl"
+                                            />
+                                            <div className="p-4">
+                                                <h3 className="font-semibold text-gray-900 mb-2 truncate">{product.title}</h3>
+                                                <div className="mb-2">
+                                                    {renderStars(product.rating)}
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xl font-bold text-gray-900">${product.price}</span>
+                                                    <button
+                                                        className="p-2 rounded-lg text-white hover:opacity-90 transition duration-200 flex items-center justify-center"
+                                                        style={{ backgroundColor: '#17A29F' }}
+                                                        title="Add to Cart"
+                                                    >
+                                                        <svg className="cursor-pointer h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
+                                                            <circle cx="9" cy="20" r="1" />
+                                                            <circle cx="20" cy="20" r="1" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    ))}
+                                    ))}
+                                </div>
+                            </section>
+                        ))
+                    )}
                 </div>
             </main>
         </div>
