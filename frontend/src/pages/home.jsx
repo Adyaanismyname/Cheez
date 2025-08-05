@@ -60,58 +60,64 @@ const HomePage = () => {
         }
     }, [currentPromoIndex, promotions.length]);
 
+    const fetchData = async () => {
+        const startTime = performance.now(); // Start timing
+        console.log('🚀 Starting data fetch...');
+
+        try {
+            setIsLoading(true);
+            const jwttoken = localStorage.getItem('token');
+            console.log('Token from localStorage:', jwttoken);
+
+            if (!jwttoken) {
+                console.error('No token found, redirecting to login');
+                navigate('/user/login');
+                return;
+            }
+
+            const headers = { authtoken: jwttoken };
+
+            // Make both API calls in parallel
+            const [productsResponse, userResponse] = await Promise.all([
+                axios.get('http://localhost:3000/home/fetch-all-products', { headers }),
+                axios.get('http://localhost:3000/home/fetch-user-profile', { headers })
+            ]);
+
+            // Handle products response
+            if (productsResponse.status === 200) {
+                setProducts(productsResponse.data.data);
+                console.log('Products fetched:', productsResponse.data.data);
+            } else {
+                console.error('Failed to fetch products:', productsResponse.data.message);
+            }
+
+            // Handle user response
+            if (userResponse.status === 200) {
+                console.log('User profile fetched:', userResponse.data.data);
+                setUserProfile(userResponse.data.data);
+            } else {
+                console.error('Failed to fetch user profile:', userResponse.data.message);
+            }
+
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            if (error.response?.status === 401) {
+                console.log('Token expired or invalid, redirecting to login');
+                localStorage.clear();
+                navigate('/user/login');
+            }
+        } finally {
+            setIsLoading(false);
+            const endTime = performance.now(); // End timing
+            const executionTime = endTime - startTime;
+            console.log(`⏱️ Data fetch completed in ${executionTime.toFixed(2)} milliseconds (${(executionTime / 1000).toFixed(2)} seconds)`);
+        }
+    };
+
     // Fetch products and user data on component mount
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                const jwttoken = localStorage.getItem('token');
-                console.log('Token from localStorage:', jwttoken);
-
-                if (!jwttoken) {
-                    console.error('No token found, redirecting to login');
-                    navigate('/user/login');
-                    return;
-                }
-
-                const headers = { authtoken: jwttoken };
-
-                // Make both API calls in parallel
-                const [productsResponse, userResponse] = await Promise.all([
-                    axios.post('http://localhost:3000/home/fetch-all-products', {}, { headers }),
-                    axios.post('http://localhost:3000/home/fetch-user-profile', {}, { headers })
-                ]);
-
-                // Handle products response
-                if (productsResponse.status === 200) {
-                    setProducts(productsResponse.data.data);
-                    console.log('Products fetched:', productsResponse.data.data);
-                } else {
-                    console.error('Failed to fetch products:', productsResponse.data.message);
-                }
-
-                // Handle user response
-                if (userResponse.status === 200) {
-                    console.log('User profile fetched:', userResponse.data.data);
-                    setUserProfile(userResponse.data.data);
-                } else {
-                    console.error('Failed to fetch user profile:', userResponse.data.message);
-                }
-
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                if (error.response?.status === 401) {
-                    console.log('Token expired or invalid, redirecting to login');
-                    localStorage.clear();
-                    navigate('/user/login');
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchData();
-    }, [navigate]);
+    }, []);
 
     const renderStars = (rating) => {
         return (
@@ -131,6 +137,28 @@ const HomePage = () => {
         );
     };
 
+    const handleAddToCart = async (product_id, quantity) => {
+        const jwttoken = localStorage.getItem('token');
+        const headers = { authtoken: jwttoken };
+
+        console.log('Adding to cart:', { product_id, quantity });
+
+        try {
+            const response = await axios.post('http://localhost:3000/cart/add-to-cart', { product_id: product_id, quantity: quantity }, { headers });
+            if (response.status === 200) {
+                console.log('Product added to cart:', response.data);
+            } else {
+                console.error('Failed to add product to cart:', response.data.message);
+            }
+        } catch (error) {
+            console.error('Error adding product to cart:', error);
+            if (error.response?.status === 401) {
+                console.log('Token expired or invalid, redirecting to login');
+                localStorage.clear();
+                navigate('/user/login');
+            }
+        }
+    };
 
     return (
         <div className="min-h-screen bg-white">
@@ -203,7 +231,7 @@ const HomePage = () => {
                             <button
                                 key={index}
                                 onClick={() => setCurrentPromoIndex(index)}
-                                className={`w-3 h-3 rounded-full transition duration-200 ${index === currentPromoIndex
+                                className={`cursor-pointer w-3 h-3 rounded-full transition duration-200 ${index === currentPromoIndex
                                     ? 'opacity-100'
                                     : 'opacity-50 hover:opacity-75'
                                     }`}
@@ -248,7 +276,7 @@ const HomePage = () => {
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-2xl font-bold text-gray-900">{categoryName}</h2>
                                     <button
-                                        className="text-sm font-medium hover:opacity-80 transition duration-200"
+                                        className="cursor-pointer text-sm font-medium hover:opacity-80 transition duration-200"
                                         style={{ color: '#17A29F' }}
                                     >
                                         View All
@@ -274,11 +302,12 @@ const HomePage = () => {
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xl font-bold text-gray-900">${product.price}</span>
                                                     <button
-                                                        className="p-2 rounded-lg text-white hover:opacity-90 transition duration-200 flex items-center justify-center"
+                                                        className="cursor-pointer p-2 rounded-lg text-white hover:opacity-90 transition duration-200 flex items-center justify-center"
                                                         style={{ backgroundColor: '#17A29F' }}
                                                         title="Add to Cart"
+                                                        onClick={() => handleAddToCart(product._id, 1)}
                                                     >
-                                                        <svg className="cursor-pointer h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
                                                             <circle cx="9" cy="20" r="1" />
                                                             <circle cx="20" cy="20" r="1" />

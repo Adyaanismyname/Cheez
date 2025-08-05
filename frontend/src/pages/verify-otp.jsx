@@ -6,6 +6,7 @@ const VerifyOTPPage = () => {
     const [otp, setOtp] = useState('');
     const [Email, setEmail] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
+    const [isSignup, setIsSignup] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -13,6 +14,7 @@ const VerifyOTPPage = () => {
     useEffect(() => {
         setEmail(localStorage.getItem('email') || ''); // Retrieve email from localStorage
         setRememberMe(localStorage.getItem('rememberMe') === 'true'); // Retrieve rememberMe preference
+        setIsSignup(localStorage.getItem('isSignup') === 'true'); // Check if this is from signup
     }, []);
 
     const handleSubmit = async (e) => {
@@ -27,12 +29,17 @@ const VerifyOTPPage = () => {
 
         try {
             console.log('Verifying OTP:', otp);
-            // Add your OTP verification logic here
-            const res = await axios.post('http://localhost:3000/login/verify-otp', {
-                email: Email,
-                otp: otp,
-                rememberMe: rememberMe
-            });
+
+            // Choose endpoint based on whether this is signup or login
+            const endpoint = isSignup
+                ? 'http://localhost:3000/signup/verify-otp'
+                : 'http://localhost:3000/login/verify-otp';
+
+            const payload = isSignup
+                ? { email: Email, otp: otp }
+                : { email: Email, otp: otp, rememberMe: rememberMe };
+
+            const res = await axios.post(endpoint, payload);
 
             if (res.status === 200) {
                 console.log('OTP verified successfully!');
@@ -44,7 +51,7 @@ const VerifyOTPPage = () => {
                 localStorage.clear();
                 localStorage.setItem('token', token);
 
-                navigate('/user/home'); // Redirect to home or another page after successful verification
+                navigate('/user/home'); // Redirect to home after successful verification
             }
 
 
@@ -77,9 +84,14 @@ const VerifyOTPPage = () => {
                         alt="Logo"
                         className="mx-auto mb-6 h-30 w-auto"
                     />
-                    <h2 className="text-2xl font-bold text-white mb-2">Verify Your Account</h2>
+                    <h2 className="text-2xl font-bold text-white mb-2">
+                        {isSignup ? 'Complete Your Registration' : 'Verify Your Account'}
+                    </h2>
                     <p className="text-gray-300 text-sm">
-                        Enter the 6-digit code sent to your email
+                        {isSignup
+                            ? 'Enter the 6-digit verification code sent to your email to complete your registration'
+                            : 'Enter the 6-digit code sent to your email'
+                        }
                     </p>
                 </div>
 

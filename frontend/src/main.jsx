@@ -5,6 +5,8 @@ import './index.css'
 import LoginPage from './pages/login.jsx'
 import OtpPage from './pages/verify-otp.jsx'
 import HomePage from './pages/home.jsx'
+import CartPage from './pages/cart.jsx'
+import SignupPage from './pages/signup.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -16,6 +18,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/user/login" element={<LoginPage />} />
         <Route path="/user/verify-otp" element={<OtpPage />} />
         <Route path="/user/home" element={<HomePage />} />
+        <Route path="/user/cart" element={<CartPage />} />
+        <Route path="/user/signup" element={<SignupPage />} />
 
 
       </Routes>
