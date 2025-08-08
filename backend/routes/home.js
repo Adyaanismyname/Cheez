@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getHomePageProducts, getUserProfile } = require('../controllers/homeController');
+const { getHomePageProducts, getUserProfile, getProductById, getProductsByCategory } = require('../controllers/homeController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 router.get(
@@ -14,6 +14,18 @@ router.get(
     authMiddleware,
     getUserProfile
 );
+
+router.get(
+    '/product/:productId',
+    authMiddleware,
+    getProductById
+)
+
+router.get(
+    '/products/category/:categoryName',
+    authMiddleware,
+    getProductsByCategory
+)
 
 // Export the router
 module.exports = router;

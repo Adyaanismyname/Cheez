@@ -248,8 +248,7 @@ const SignupPage = () => {
                 {/* Login Link */}
                 <p className="mt-8 text-center text-sm text-gray-300">
                     Already have an account?{' '}
-                    <a href="/user/login" className="cursor-pointer font-medium transition duration-200 hover:opacity-80" style={{ color: '#17A29F' }}>
-                        Sign in
+                    <a href="/user/login" className="cursor-pointer font-medium transition duration-200 hover:opacity-80" style={{ color: '#17A29F' }}> Sign in
                     </a>
                 </p>
             </div>

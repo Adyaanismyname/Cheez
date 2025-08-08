@@ -151,7 +151,7 @@ const CartPage = () => {
 
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 overflow-x-hidden">
             <TopBar
                 userProfile={userProfile}
                 searchQuery={searchQuery}

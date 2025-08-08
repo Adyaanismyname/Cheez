@@ -40,9 +40,9 @@ const getHomePageProducts = async (req, res) => {
 
                 const products = await Product.find({ category: category._id })
                     .limit(10)
-                    .populate('category', 'name') 
+                    .populate('category', 'name')
                     .select('_id title price images rating description category createdAt')
-                    .lean(); 
+                    .lean();
 
                 return { [catName]: products };
             })
@@ -61,9 +61,64 @@ const getHomePageProducts = async (req, res) => {
     }
 };
 
+const getProductById = async (req, res) => {
+    const { productId } = req.params;
+
+    try {
+        const product = await Product.findById(productId)
+            .populate('category', 'name')
+            .select('_id title price images rating description category stock createdAt')
+            .lean();
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.status(200).json({
+            message: 'Product fetched successfully',
+            data: product
+        });
+    } catch (error) {
+        console.error('Error fetching product:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+const getProductsByCategory = async (req, res) => {
+    const { categoryName } = req.params;
+
+    try {
+        // First find the category by name
+        const category = await Category.findOne({ name: categoryName }).lean();
+
+        if (!category) {
+            return res.status(404).json({ message: 'Category not found' });
+        }
+
+        const products = await Product.find({ category: category._id })
+            .populate('category', 'name')
+            .select('_id title price images rating description category stock createdAt')
+            .lean();
+
+        if (!products || products.length === 0) {
+            return res.status(404).json({ message: 'No products found for this category' });
+        }
+
+        res.status(200).json({
+            message: 'Products fetched successfully',
+            data: products
+        });
+    } catch (error) {
+        console.error('Error fetching products by category:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
 
 
 module.exports = {
     getUserProfile,
-    getHomePageProducts
+    getHomePageProducts,
+    getProductById,
+    getProductsByCategory
 };

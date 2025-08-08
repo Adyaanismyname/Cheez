@@ -7,6 +7,7 @@ const HomePage = () => {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [products, setProducts] = useState({});
+    const [originalProducts, setOriginalProducts] = useState({}); // Store original products for search
     const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
     const [userProfile, setUserProfile] = useState({});
     const [isLoading, setIsLoading] = useState(true);
@@ -86,6 +87,7 @@ const HomePage = () => {
             // Handle products response
             if (productsResponse.status === 200) {
                 setProducts(productsResponse.data.data);
+                setOriginalProducts(productsResponse.data.data); // Store original products
                 console.log('Products fetched:', productsResponse.data.data);
             } else {
                 console.error('Failed to fetch products:', productsResponse.data.message);
@@ -119,6 +121,14 @@ const HomePage = () => {
         fetchData();
     }, []);
 
+    // Reset products when search query is cleared
+    useEffect(() => {
+        if (searchQuery === '' && Object.keys(originalProducts).length > 0) {
+            console.log('🔄 Search cleared, resetting to original products');
+            setProducts(originalProducts);
+        }
+    }, [searchQuery, originalProducts]);
+
     const renderStars = (rating) => {
         return (
             <div className="flex items-center">
@@ -132,7 +142,7 @@ const HomePage = () => {
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                 ))}
-                <span className="ml-2 text-sm text-gray-600">{rating}</span>
+                <span className="ml-2 text-sm text-gray-60">{rating}</span>
             </div>
         );
     };
@@ -160,13 +170,48 @@ const HomePage = () => {
         }
     };
 
+    const handleSearchSubmit = (query) => {
+        if (query.trim()) {
+            console.log('🔍 Searching for:', query);
+
+            // Filter products based on search query using originalProducts
+            const filteredResults = Object.keys(originalProducts).reduce((acc, categoryName) => {
+                const filteredProducts = originalProducts[categoryName].filter(product =>
+                    product.title.toLowerCase().includes(query.toLowerCase()) ||
+                    product.description?.toLowerCase().includes(query.toLowerCase()) ||
+                    categoryName.toLowerCase().includes(query.toLowerCase())
+                );
+                if (filteredProducts.length > 0) {
+                    acc[categoryName] = filteredProducts;
+                }
+                return acc;
+            }, {});
+
+            console.log('Search results:', filteredResults);
+            setProducts(filteredResults);
+        } else {
+            // If search query is empty, reset to original products
+            console.log('🔄 Resetting to original products');
+            setProducts(originalProducts);
+        }
+    };
+
+    // Function to manually reset search (can be called from anywhere)
+    const resetSearch = () => {
+        setSearchQuery('');
+        setProducts(originalProducts);
+        console.log('🏠 Manually reset to home view');
+    };
+
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white overflow-x-hidden no-scroll-overflow">
             {/* Header */}
             <TopBar
                 userProfile={userProfile}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                onSearchSubmit={handleSearchSubmit}
+                onSearchReset={resetSearch}
             />
 
             <main>
@@ -270,6 +315,31 @@ const HomePage = () => {
                                 </section>
                             ))}
                         </div>
+                    ) : Object.keys(products).length === 0 ? (
+                        // No products found message
+                        <div className="text-center py-16">
+                            <div className="max-w-md mx-auto">
+                                <svg className="mx-auto h-24 w-24 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-2">No products found</h3>
+                                <p className="text-gray-600 mb-6">
+                                    {searchQuery
+                                        ? `No products match your search "${searchQuery}". Try searching for something else.`
+                                        : "No products are available at the moment."
+                                    }
+                                </p>
+                                {searchQuery && (
+                                    <button
+                                        onClick={resetSearch}
+                                        className="cursor-pointer px-6 py-3 rounded-lg text-white font-semibold hover:opacity-90 transition duration-200"
+                                        style={{ backgroundColor: '#17A29F' }}
+                                    >
+                                        Clear Search
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     ) : (
                         Object.keys(products).map((categoryName) => (
                             <section key={categoryName} className="mb-12">
@@ -286,6 +356,7 @@ const HomePage = () => {
                                 <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
                                     {products[categoryName].map((product) => (
                                         <div
+                                            onClick={() => { navigate(`/user/product/${product._id}`) }}
                                             key={product._id}
                                             className="flex-shrink-0 w-64 bg-white rounded-xl shadow-md hover:shadow-lg transition duration-300 cursor-pointer border border-gray-200"
                                         >
@@ -305,7 +376,10 @@ const HomePage = () => {
                                                         className="cursor-pointer p-2 rounded-lg text-white hover:opacity-90 transition duration-200 flex items-center justify-center"
                                                         style={{ backgroundColor: '#17A29F' }}
                                                         title="Add to Cart"
-                                                        onClick={() => handleAddToCart(product._id, 1)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // Prevent navigation when clicking cart button
+                                                            handleAddToCart(product._id, 1);
+                                                        }}
                                                     >
                                                         <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
